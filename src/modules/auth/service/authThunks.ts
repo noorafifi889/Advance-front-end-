@@ -27,9 +27,8 @@ export const loginEmailThunk =
   (email: string, password: string) => async (dispatch: AppDispatch) => {
     dispatch(setChecking());
     try {
-        const cleanEmail = email.trim();
-const cleanPassword = password.trim();
-      await loginWithEmail(cleanEmail, cleanPassword);
+        
+      await loginWithEmail(email, password);
     } catch (e: any) {
       dispatch(setError(e.message));
         console.log("FIREBASE AUTH ERROR:", e.code, e.message);
