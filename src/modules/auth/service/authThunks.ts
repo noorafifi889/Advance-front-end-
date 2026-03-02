@@ -24,15 +24,14 @@ export const startAuthListener = () => (dispatch: AppDispatch) => {
 
 // 2) Login Email
 export const loginEmailThunk =
-  (email: string, password: string) => async (dispatch: AppDispatch) => {
+  (email: string, password: string) => async (dispatch: any) => {
     dispatch(setChecking());
     try {
-        
       await loginWithEmail(email, password);
+      return true;
     } catch (e: any) {
-      dispatch(setError(e.message));
-        console.log("FIREBASE AUTH ERROR:", e.code, e.message);
-  alert(e.code);
+      dispatch(setError(e.code));
+      return false;
     }
   };
 
@@ -42,18 +41,22 @@ export const signupThunk =
     dispatch(setChecking());
     try {
       await signupWithEmail(email, password);
+          return true;
     } catch (e: any) {
       dispatch(setError(e.message));
+      return false;
     }
   };
 
 // 4) Google
-export const loginGoogleThunk = () => async (dispatch: AppDispatch) => {
+export const loginGoogleThunk = () => async (dispatch: any) => {
   dispatch(setChecking());
   try {
     await loginWithGoogle();
+    return true;
   } catch (e: any) {
-    dispatch(setError(e.message));
+    dispatch(setError(e.code));
+    return false;
   }
 };
 
