@@ -1,11 +1,11 @@
-import {configureStore} from '@reduxjs/toolkit';
-import { count } from 'console';
- import counterReducers from './counter/counterSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import authReducer from "@/src/modules/auth/service/authSlice";
+
 export const store = configureStore({
-    reducer: {
-        // Add your reducers here
-        counter:counterReducers
-    },
+  reducer: {
+    auth: authReducer,
+  },
 });
+
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

@@ -1,0 +1,7 @@
+"use client";
+import { Provider } from "react-redux";
+import { store } from "../shared/state/store";
+
+export default function AppProviders({ children }: { children: React.ReactNode }) {
+  return <Provider store={store}>{children}</Provider>;
+}
