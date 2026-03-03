@@ -1,4 +1,4 @@
-import { auth } from "@/src/core/firebase/firebase";
+import { auth, db } from "@/src/core/firebase/firebase";
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -7,6 +7,7 @@ import {
   signInWithPopup,
   signOut,
 } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export const googleProvider = new GoogleAuthProvider();
 
@@ -28,4 +29,13 @@ export function loginWithGoogle() {
 
 export function logoutFirebase() {
   return signOut(auth);
+}
+
+export async function saveUserProfile(uid: string, data: any) {
+  await setDoc(doc(db, "users", uid), data, { merge: true });
+}
+
+export async function getUserProfile(uid: string) {
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? snap.data() : null;
 }

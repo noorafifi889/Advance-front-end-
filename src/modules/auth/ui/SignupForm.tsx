@@ -1,10 +1,15 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Eye, EyeOff, Mail, Lock, User as UserIcon } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User as UserIcon, Phone } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { signupThunk, loginGoogleThunk } from "@/src/modules/auth/service/authThunks";
+
+const ROLES = [
+  { value: "USER", label: "User" },
+  { value: "ADMIN", label: "Admin" },
+];
 
 const SignupForm: React.FC = () => {
   const dispatch = useDispatch();
@@ -16,6 +21,13 @@ const SignupForm: React.FC = () => {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+
+  const [phone, setPhone] = useState("");
+  const [birthDate, setBirthDate] = useState(""); 
+  const [role, setRole] = useState<"USER" | "ADMIN">("USER");
+
+  const [address, setAddress] = useState(""); 
+
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -24,17 +36,50 @@ const SignupForm: React.FC = () => {
 
   const passwordsMatch = useMemo(() => password === confirm, [password, confirm]);
 
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+  const normalizePhone = (v: string) => v.replace(/[^\d+\-\s]/g, "");
+  const isValidPhone = (v: string) => {
+    const digits = v.replace(/[^\d]/g, "");
+    return digits.length >= 9 && digits.length <= 15;
+  };
+
+  const isAdultOrAllowed = (dateStr: string) => {
+   
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    const now = new Date();
+    return d <= now;
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
 
     const cleanName = fullName.trim();
     const cleanEmail = email.trim();
+    const cleanPhone = normalizePhone(phone.trim());
+    const cleanBirth = birthDate.trim();
     const cleanPassword = password.trim();
     const cleanConfirm = confirm.trim();
 
-    if (!cleanName || !cleanEmail || !cleanPassword || !cleanConfirm) {
-      setLocalError("Please fill all fields.");
+    if (!cleanName || !cleanEmail || !cleanPhone || !cleanBirth || !cleanPassword || !cleanConfirm) {
+      setLocalError("Please fill all required fields.");
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setLocalError("Please enter a valid email.");
+      return;
+    }
+
+    if (!isValidPhone(cleanPhone)) {
+      setLocalError("Please enter a valid phone number.");
+      return;
+    }
+
+    if (!isAdultOrAllowed(cleanBirth)) {
+      setLocalError("Please select a valid birth date.");
       return;
     }
 
@@ -48,8 +93,19 @@ const SignupForm: React.FC = () => {
       return;
     }
 
-    // Signup
-    const ok = await dispatch(signupThunk(cleanEmail, cleanPassword) as any);
+    // payload شامل كل التفاصيل
+    const payload = {
+      fullName: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      birthDate: cleanBirth, // yyyy-mm-dd
+      role,
+      address: address.trim() || undefined,
+      password: cleanPassword,
+    };
+
+    // مهم: لازم signupThunk يقبل payload (مش email/pass فقط)
+    const ok = await dispatch(signupThunk(payload) as any);
 
     if (ok) router.replace("/login");
   };
@@ -75,11 +131,10 @@ const SignupForm: React.FC = () => {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={onSubmit} className="space-y-4">
           {/* Full name */}
           <div>
-            <label className="text-sm font-medium text-gray-700">Full name</label>
+            <label className="text-sm font-medium text-gray-700">Full name *</label>
             <div className="mt-1 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 focus-within:border-indigo-500">
               <UserIcon className="h-5 w-5 text-gray-400" />
               <input
@@ -94,7 +149,7 @@ const SignupForm: React.FC = () => {
 
           {/* Email */}
           <div>
-            <label className="text-sm font-medium text-gray-700">Email</label>
+            <label className="text-sm font-medium text-gray-700">Email *</label>
             <div className="mt-1 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 focus-within:border-indigo-500">
               <Mail className="h-5 w-5 text-gray-400" />
               <input
@@ -107,9 +162,73 @@ const SignupForm: React.FC = () => {
             </div>
           </div>
 
+          {/* Phone */}
+          <div>
+            <label className="text-sm font-medium text-gray-700">Phone number *</label>
+            <div className="mt-1 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 focus-within:border-indigo-500">
+              <Phone className="h-5 w-5 text-gray-400" />
+              <input
+                value={phone}
+                onChange={(e) => setPhone(normalizePhone(e.target.value))}
+                type="tel"
+                placeholder="+970 59..."
+                className="w-full outline-none text-gray-900 placeholder:text-gray-400"
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-400">Digits only (9–15). You can include +.</p>
+          </div>
+
+          {/* Birth date + Role */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Birth date *</label>
+              <div className="mt-1 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 focus-within:border-indigo-500">
+                <input
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  type="date"
+                  className="w-full outline-none text-gray-900"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">Role *</label>
+              <div className="mt-1 rounded-xl border border-gray-200 bg-white px-3 py-2 focus-within:border-indigo-500">
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as any)}
+                  className="w-full outline-none text-gray-900 bg-transparent"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Extra details (optional) */}
+          <div>
+            <label className="text-sm font-medium text-gray-700">Address (optional)</label>
+            <div className="mt-1 rounded-xl border border-gray-200 bg-white px-3 py-2 focus-within:border-indigo-500">
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                type="text"
+                placeholder="City, Street..."
+                className="w-full outline-none text-gray-900 placeholder:text-gray-400"
+              />
+            </div>
+          </div>
+
+         
+
           {/* Password */}
           <div>
-            <label className="text-sm font-medium text-gray-700">Password</label>
+            <label className="text-sm font-medium text-gray-700">Password *</label>
             <div className="mt-1 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 focus-within:border-indigo-500">
               <Lock className="h-5 w-5 text-gray-400" />
               <input
@@ -133,7 +252,7 @@ const SignupForm: React.FC = () => {
 
           {/* Confirm password */}
           <div>
-            <label className="text-sm font-medium text-gray-700">Confirm password</label>
+            <label className="text-sm font-medium text-gray-700">Confirm password *</label>
             <div
               className={`mt-1 flex items-center gap-2 rounded-xl border bg-white px-3 py-2 focus-within:border-indigo-500 ${
                 confirm.length === 0
@@ -168,7 +287,6 @@ const SignupForm: React.FC = () => {
             )}
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
@@ -178,14 +296,12 @@ const SignupForm: React.FC = () => {
           </button>
         </form>
 
-        {/* Divider */}
         <div className="my-6 flex items-center gap-3">
           <div className="h-px flex-1 bg-gray-200" />
           <span className="text-xs text-gray-400">OR</span>
           <div className="h-px flex-1 bg-gray-200" />
         </div>
 
-        {/* Google */}
         <button
           onClick={onGoogle}
           disabled={loading}
@@ -194,7 +310,6 @@ const SignupForm: React.FC = () => {
           Continue with Google
         </button>
 
-        {/* Footer */}
         <p className="mt-6 text-center text-sm text-gray-600">
           Already have an account?{" "}
           <button
