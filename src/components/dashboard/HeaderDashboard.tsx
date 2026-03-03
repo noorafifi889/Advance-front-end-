@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
-import { Bell, Shield, User2, LogOut, Search } from "lucide-react";
+import { Shield, User2, LogOut, Search } from "lucide-react";
+import { logoutThunk } from "@/src/modules/auth/service/authThunks";
+import { useRouter } from "next/navigation"; // ✅
+import { useDispatch } from "react-redux";
 
 type Role = "admin" | "user" | "ADMIN" | "USER";
 
@@ -12,7 +15,6 @@ type Props = {
     email?: string;
     role?: Role;
   };
-  onLogout: () => void;
   onSearch?: (q: string) => void;
 };
 
@@ -21,21 +23,27 @@ function normalizeRole(role?: Role) {
   return r === "admin" ? "admin" : "user";
 }
 
-export default function HeaderDashboard({ title = "Dashboard", user, onLogout, onSearch }: Props) {
+export default function HeaderDashboard({ title = "Dashboard", user, onSearch }: Props) {
+  const dispatch = useDispatch();
+  const router = useRouter(); // ✅
+
   const role = normalizeRole(user.role);
   const isAdmin = role === "admin";
 
+  const handleLogout = async () => {
+    await dispatch(logoutThunk() as any);
+    router.push("/"); // ✅
+  };
+
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-white/80 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
-        {/* Left: Brand + Title */}
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4">
+        {/* Left */}
         <div className="flex items-center gap-3">
           <div
             className={`grid h-10 w-10 place-items-center rounded-xl text-white shadow-sm ${
               isAdmin ? "bg-rose-600" : "bg-indigo-600"
             }`}
-            aria-label={isAdmin ? "Admin" : "User"}
-            title={isAdmin ? "Admin" : "User"}
           >
             {isAdmin ? <Shield className="h-5 w-5" /> : <User2 className="h-5 w-5" />}
           </div>
@@ -46,7 +54,7 @@ export default function HeaderDashboard({ title = "Dashboard", user, onLogout, o
           </div>
         </div>
 
-        {/* Center: Search */}
+        {/* Search */}
         <div className="ml-auto hidden w-full max-w-md items-center gap-2 rounded-xl border bg-white px-3 py-2 sm:flex">
           <Search className="h-4 w-4 text-gray-400" />
           <input
@@ -56,37 +64,31 @@ export default function HeaderDashboard({ title = "Dashboard", user, onLogout, o
           />
         </div>
 
-        {/* Right: Actions */}
+        {/* Right */}
         <div className="ml-auto flex items-center gap-2 sm:ml-0">
-          {/* Role badge */}
           <span
             className={`hidden rounded-full px-3 py-1 text-xs font-semibold sm:inline-flex ${
               isAdmin
-                ? "bg-rose-50 text-rose-700 border border-rose-200"
-                : "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                ? "border border-rose-200 bg-rose-50 text-rose-700"
+                : "border border-indigo-200 bg-indigo-50 text-indigo-700"
             }`}
           >
             {isAdmin ? "Admin" : "User"}
           </span>
 
-
-          {/* Avatar */}
           <div className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2">
             <div className="grid h-8 w-8 place-items-center rounded-full bg-gray-100 text-gray-700">
               {(user.fullName?.[0] || user.email?.[0] || "U").toUpperCase()}
             </div>
             <div className="hidden leading-tight sm:block">
-              <p className="text-sm font-semibold text-gray-900">
-                {user.fullName || "Account"}
-              </p>
+              <p className="text-sm font-semibold text-gray-900">{user.fullName || "Account"}</p>
               <p className="text-xs text-gray-500">{user.email || ""}</p>
             </div>
           </div>
 
-          {/* Logout */}
           <button
             type="button"
-            onClick={onLogout}
+            onClick={handleLogout}
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm ${
               isAdmin ? "bg-rose-600 hover:bg-rose-700" : "bg-indigo-600 hover:bg-indigo-700"
             }`}
@@ -97,8 +99,8 @@ export default function HeaderDashboard({ title = "Dashboard", user, onLogout, o
         </div>
       </div>
 
-      {/* Mobile search */}
-      <div className="mx-auto max-w-6xl px-4 pb-3 sm:hidden">
+      {/* Mobile Search */}
+      <div className="mx-auto max-w-7xl px-4 pb-3 sm:hidden">
         <div className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2">
           <Search className="h-4 w-4 text-gray-400" />
           <input
