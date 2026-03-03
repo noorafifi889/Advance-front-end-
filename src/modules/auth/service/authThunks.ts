@@ -5,23 +5,39 @@ import {
   loginWithGoogle,
   logoutFirebase,
   signupWithEmail,
+  saveUserProfile,
+  getUserProfile,
 } from "./auth.firebase";
 import { AppDispatch } from "@/src/shared/state/store";
 
-function mapUser(u: any) {
-  return { uid: u.uid, email: u.email, displayName: u.displayName };
+function mapUser(u: any, profile?: any) {
+  return {
+    uid: u.uid,
+    email: u.email,
+    displayName: u.displayName,
+    // دمج بيانات Firestore
+    fullName: profile?.fullName ?? u.displayName ?? "",
+    phone: profile?.phone ?? "",
+    birthDate: profile?.birthDate ?? "",
+    role: profile?.role ?? "USER",
+    bio: profile?.bio ?? "",
+    address: profile?.address ?? "",
+  };
 }
 
-// 1) Listener مرة واحدة عند بداية التطبيق
 export const startAuthListener = () => (dispatch: AppDispatch) => {
   dispatch(setChecking());
 
-  return listenToAuthChanges((u) => {
-    if (u) dispatch(setUser(mapUser(u)));
-    else dispatch(clearUser());
+  return listenToAuthChanges(async (u) => {
+    if (!u) {
+      dispatch(clearUser());
+      return;
+    }
+
+    const profile = await getUserProfile(u.uid); // 
+    dispatch(setUser(mapUser(u, profile)));
   });
 };
-
 // 2) Login Email
 export const loginEmailThunk =
   (email: string, password: string) => async (dispatch: any) => {
@@ -37,13 +53,36 @@ export const loginEmailThunk =
 
 // 3) Signup
 export const signupThunk =
-  (email: string, password: string) => async (dispatch: AppDispatch) => {
+  (payload: {
+    fullName: string;
+    email: string;
+    password: string;
+    phone: string;
+    birthDate: string;
+    role: "USER" | "ADMIN";
+    bio?: string;
+    address?: string;
+  }) =>
+  async (dispatch: AppDispatch) => {
     dispatch(setChecking());
     try {
-      await signupWithEmail(email, password);
-          return true;
+      // 1) Create auth user
+      const cred = await signupWithEmail(payload.email, payload.password);
+
+      // 2) Save extra fields in Firestore
+      await saveUserProfile(cred.user.uid, {
+        fullName: payload.fullName,
+        phone: payload.phone,
+        birthDate: payload.birthDate,
+role: payload.role.toLowerCase(), 
+        bio: payload.bio ?? "",
+        address: payload.address ?? "",
+        createdAt: Date.now(),
+      });
+
+      return true;
     } catch (e: any) {
-      dispatch(setError(e.message));
+      dispatch(setError(e.message || e.code));
       return false;
     }
   };
