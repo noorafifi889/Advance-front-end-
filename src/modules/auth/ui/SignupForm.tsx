@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, Mail, Lock, User as UserIcon, Phone } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
@@ -33,7 +33,8 @@ const SignupForm: React.FC = () => {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-
+const [image, setImage] = useState<File | null>(null);
+const [imagePreview, setImagePreview] = useState<string | null>(null);
   const passwordsMatch = useMemo(() => password === confirm, [password, confirm]);
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -43,6 +44,11 @@ const SignupForm: React.FC = () => {
     const digits = v.replace(/[^\d]/g, "");
     return digits.length >= 9 && digits.length <= 15;
   };
+  useEffect(() => {
+  return () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+  };
+}, [imagePreview]);
 
   const isAdultOrAllowed = (dateStr: string) => {
    
@@ -93,18 +99,16 @@ const SignupForm: React.FC = () => {
       return;
     }
 
-    // payload شامل كل التفاصيل
     const payload = {
       fullName: cleanName,
       email: cleanEmail,
       phone: cleanPhone,
-      birthDate: cleanBirth, // yyyy-mm-dd
+      birthDate: cleanBirth, 
       role,
       address: address.trim() || undefined,
       password: cleanPassword,
     };
 
-    // مهم: لازم signupThunk يقبل payload (مش email/pass فقط)
     const ok = await dispatch(signupThunk(payload) as any);
 
     if (ok) router.replace("/login");
@@ -223,8 +227,32 @@ const SignupForm: React.FC = () => {
               />
             </div>
           </div>
+<div>
+  <label className="text-sm font-medium text-gray-700">Profile Image</label>
 
-         
+  <div className="mt-1 rounded-xl border border-gray-200 bg-white px-3 py-2 focus-within:border-indigo-500">
+    <input
+      type="file"
+      accept="image/*"
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImage(file);
+        setImagePreview(URL.createObjectURL(file));
+      }}
+      className="w-full text-gray-900 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+    />
+  </div>
+
+  {imagePreview && (
+    <img
+      src={imagePreview}
+      alt="Profile preview"
+      className="mt-3 h-20 w-20 rounded-full object-cover border border-gray-200"
+    />
+  )}
+</div>
 
           {/* Password */}
           <div>
