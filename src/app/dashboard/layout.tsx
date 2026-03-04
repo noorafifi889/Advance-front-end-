@@ -15,21 +15,27 @@ export default function DashboardLayout({
   const auth = useSelector((s: any) => s.auth.user);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar role={auth?.role} />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      
+      {/* Header full width */}
+      <HeaderDashboard
+        title="Dashboard"
+        user={{
+          fullName: auth?.fullName,
+          email: auth?.email,
+          role: auth?.role,
+        }}
+      />
 
-      <div className="flex-1">
-        <HeaderDashboard
-          title="Dashboard"
-          user={{
-            fullName: auth?.fullName,
-            email: auth?.email,
-            role: auth?.role,
-          }}
-        />
+      {/* Sidebar + Content */}
+      <div className="flex flex-1">
+        <Sidebar role={auth?.role} />
 
-        <main className="p-6">{children}</main>
+        <main className="flex-1 p-6">
+          {children}
+        </main>
       </div>
+
     </div>
   );
 }
